@@ -8,9 +8,12 @@ steps:
     image: kameshsampath/kube-dev-tools:0.1.0
     environment:
        K3D_CLUSTER_NAME: ko-demos
+       KUBECONFIG: ./.kube/config.external
     commands:
       - k3d registry create myregistry.localhost --port 5001
       - k3d cluster create $K3D_CLUSTER_NAME --registry-use k3d-myregistry.localhost:5001
+      - k3d kubeconfig get "$K3D_CLUSTER_NAME" > "$KUBECONFIG" 
+      - sed -i 's|host.docker.internal|127.0.0.1|' "$KUBECONFIG"
     volumes:
       - name: docker-sock
         path: /var/run/docker.sock
@@ -32,7 +35,7 @@ steps:
     commands:
       - k3d kubeconfig get "$K3D_CLUSTER_NAME" > "$KUBECONFIG" 
       - chmod 0700 "$KUBECONFIG" 
-      - ko create --insecure-registry -f config/
+      - ko apply --insecure-registry -f config/
     volumes:
       - name: docker-sock
         path: /var/run/docker.sock
@@ -49,11 +52,11 @@ steps:
     image: rancher/k3d
     environment:
       K3D_CLUSTER_NAME: ko-demos
-      KUBECONFIG: ./.kube/config
+      KUBECONFIG_DIR: ./.kube
     commands:
       - k3d cluster delete $K3D_CLUSTER_NAME 
       - k3d registry delete myregistry.localhost
-      - rm -rf $KUBECONFIG
+      - rm -rf $KUBECONFIG_DIR/*
     volumes:
       - name: docker-sock
         path: /var/run/docker.sock
