@@ -5,7 +5,7 @@ An example to show how to use [ko](https://ko.build) as part of [Drone CI](https
 ## Pre-requisites
 
 - [Docker for Desktop](https://www.docker.com/products/docker-desktop/)
-- [Drone CI](https://drone.io)
+- [Drone CLI](https://docs.drone.io/cli/install/)
 - [k3d](https://k3d.io)
 - [ko](https://ko.build)
 

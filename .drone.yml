@@ -33,11 +33,12 @@ steps:
         path: /var/run/docker.sock
   - name: deploy
     image: kameshsampath/kube-dev-tools:0.1.0
+    # this is required for ko to resolve the local registry
+    # k3d-myregistry.localhost:5001
+    network_mode: host
     environment:
       K3D_CLUSTER_NAME: ko-demos
-      # since the registry will be reached from within docker network
-      # use the default registry port of 5000
-      KO_DOCKER_REPO: k3d-myregistry.localhost:5000
+      KO_DOCKER_REPO: k3d-myregistry.localhost:5001
     commands:
       - k3d kubeconfig get "$K3D_CLUSTER_NAME" > "$KUBECONFIG" 
       - chmod 0700 "$KUBECONFIG"
