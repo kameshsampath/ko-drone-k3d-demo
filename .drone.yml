@@ -1,0 +1,63 @@
+---
+kind: pipeline
+type: docker
+name: default
+
+steps:
+  - name: setup cluster
+    image: kameshsampath/kube-dev-tools:0.1.0
+    environment:
+       K3D_CLUSTER_NAME: ko-demos
+    commands:
+      - k3d registry create myregistry.localhost --port 5001
+      - k3d cluster create $K3D_CLUSTER_NAME --registry-use k3d-myregistry.localhost:5001
+    volumes:
+      - name: docker-sock
+        path: /var/run/docker.sock
+  - name: ensure registry setup 
+    image: kameshsampath/kube-dev-tools:0.1.0
+    commands:
+      - docker pull busybox
+      - docker tag busybox k3d-myregistry.localhost:5001/busybox
+      - docker push k3d-myregistry.localhost:5001/busybox
+    volumes:
+      - name: docker-sock
+        path: /var/run/docker.sock
+  - name: deploy
+    image: kameshsampath/kube-dev-tools:0.1.0
+    environment:
+      K3D_CLUSTER_NAME: ko-demos
+      KO_DOCKER_REPO: k3d-myregistry.localhost:5001/examples
+      KUBECONFIG: ./.kube/config
+    commands:
+      - k3d kubeconfig get "$K3D_CLUSTER_NAME" > "$KUBECONFIG" 
+      - chmod 0700 "$KUBECONFIG" 
+      - ko create --insecure-registry -f config/
+    volumes:
+      - name: docker-sock
+        path: /var/run/docker.sock
+volumes:
+  - name: docker-sock
+    host:
+      path: /var/run/docker.sock
+---
+kind: pipeline
+type: docker
+name: clean
+steps:
+  - name: delete cluster
+    image: rancher/k3d
+    environment:
+      K3D_CLUSTER_NAME: ko-demos
+      KUBECONFIG: ./.kube/config
+    commands:
+      - k3d cluster delete $K3D_CLUSTER_NAME 
+      - k3d registry delete myregistry.localhost
+      - rm -rf $KUBECONFIG
+    volumes:
+      - name: docker-sock
+        path: /var/run/docker.sock
+volumes:
+  - name: docker-sock
+    host:
+      path: /var/run/docker.sock
