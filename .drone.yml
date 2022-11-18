@@ -7,11 +7,12 @@ steps:
   - name: setup cluster
     image: kameshsampath/kube-dev-tools:0.1.0
     environment:
-       K3D_CLUSTER_NAME: ko-demos
-       KUBECONFIG: ./.kube/config.external
+      K3D_CLUSTER_NAME: ko-demos
+      KUBECONFIG: ./.kube/config.external
+      REGISTRY_NAME: myregistry.localhost
     commands:
-      - k3d registry create myregistry.localhost --port 5001
-      - k3d cluster create $K3D_CLUSTER_NAME --registry-use k3d-myregistry.localhost:5001
+      - k3d registry create $REGISTRY_NAME --port 5001
+      - k3d cluster create $K3D_CLUSTER_NAME --registry-use k3d-$REGISTRY_NAME:5001
       - k3d kubeconfig get "$K3D_CLUSTER_NAME" > "$KUBECONFIG" 
       - sed -i 's|host.docker.internal|127.0.0.1|' "$KUBECONFIG"
     volumes:
@@ -19,10 +20,14 @@ steps:
         path: /var/run/docker.sock
   - name: ensure registry setup 
     image: kameshsampath/kube-dev-tools:0.1.0
+    environment:
+       K3D_CLUSTER_NAME: ko-demos
+       KUBECONFIG: ./.kube/config.external
+       REGISTRY: k3d-myregistry.localhost:5001
     commands:
       - docker pull busybox
-      - docker tag busybox k3d-myregistry.localhost:5001/busybox
-      - docker push k3d-myregistry.localhost:5001/busybox
+      - docker tag busybox k3d-$REGISTRY/busybox
+      - docker push k3d-$REGISTRY/busybox
     volumes:
       - name: docker-sock
         path: /var/run/docker.sock
@@ -30,11 +35,12 @@ steps:
     image: kameshsampath/kube-dev-tools:0.1.0
     environment:
       K3D_CLUSTER_NAME: ko-demos
-      KO_DOCKER_REPO: k3d-myregistry.localhost:5001/examples
-      KUBECONFIG: ./.kube/config
+      # since the registry will be reached from within docker network
+      # use the default registry port of 5000
+      KO_DOCKER_REPO: k3d-myregistry.localhost:5000
     commands:
       - k3d kubeconfig get "$K3D_CLUSTER_NAME" > "$KUBECONFIG" 
-      - chmod 0700 "$KUBECONFIG" 
+      - chmod 0700 "$KUBECONFIG"
       - ko apply --insecure-registry -f config/
     volumes:
       - name: docker-sock
@@ -53,9 +59,10 @@ steps:
     environment:
       K3D_CLUSTER_NAME: ko-demos
       KUBECONFIG_DIR: ./.kube
+      REGISTRY_NAME: myregistry.localhost
     commands:
       - k3d cluster delete $K3D_CLUSTER_NAME 
-      - k3d registry delete myregistry.localhost
+      - k3d registry delete $REGISTRY_NAME
       - rm -rf $KUBECONFIG_DIR/*
     volumes:
       - name: docker-sock

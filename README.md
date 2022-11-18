@@ -15,9 +15,44 @@ An example to show how to use [ko](https://ko.build) as part of [Drone CI](https
 drone exec --trusted
 ```
 
-## Deploy from Host
+If all goes well you should have the `hello-world` deployment running in your cluster.
 
-Run the same command from the host directly which succeeds,
+Validate the deployment
+
+```shell
+export KUBECONFIG="$PWD/.kube/config.external"
+```
+
+Check the pods and services,
+
+```shell
+kubectl get pods,svc
+```
+
+```shell
+NAME                               READY   STATUS    RESTARTS   AGE
+pod/hello-world-566b6d7896-6qts9   1/1     Running   0          4m9s
+
+NAME                  TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
+service/kubernetes    ClusterIP   10.43.0.1      <none>        443/TCP    13m
+service/hello-world   ClusterIP   10.43.224.48   <none>        8080/TCP   12m
+```
+
+Do port forward the `hello-world` service,
+
+```shell
+kubectl port-forward deployments/hello-world 8080
+```
+
+Calling the service,
+
+```shell
+curl localhost:8080/
+```
+
+## Using `ko` from host
+
+If you have installed `ko` locally, then run the command to deploy the application.
 
 ```shell
 export KUBECONFIG="$PWD/.kube/config.external"
